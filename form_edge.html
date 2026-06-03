@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Form Edge</title>
+<!-- ===== Paste your two SAFE Supabase values (Project URL + anon key). Leave for demo. ===== -->
+<script>
+  const SUPABASE_URL = "https://nwuphpnnjezquhnwzhos.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53dXBocG5uamV6cXVobnd6aG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjgzNTgsImV4cCI6MjA5NTk0NDM1OH0.GqzCynE3lxbIiXIVLSiYGkEetignqLEryb3NpKGuEkg";
+  const READ_ENDPOINT = "lovely-elegance-production-bcfe.up.railway.app"; // e.g. https://form-edge-reads.up.railway.app/read
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#fbfbfd; --card:#ffffff; --ink:#1d1d1f; --sub:#6e6e73; --faint:#a1a1a6;
+    --line:#e8e8ed; --line2:#d2d2d7; --blue:#0071e3; --green:#34c759; --amber:#ff9f0a; --red:#ff3b30;
+    --shadow:0 1px 2px rgba(0,0,0,.05),0 10px 32px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--ink:#f5f5f7;--sub:#98989d;--faint:#636366;--line:#2c2c2e;--line2:#3a3a3c;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 32px rgba(0,0,0,.5)}}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--ink);min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:720px;margin:0 auto;padding:0 18px 90px}
+
+  header{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;margin:0 -18px;background:color-mix(in srgb,var(--bg) 80%,transparent);
+    backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:700;letter-spacing:-.02em}
+  .brand .logo{font-size:23px}
+  .brand span{color:var(--blue)}
+  .chip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--sub);
+    border:1px solid var(--line2);padding:7px 12px;border-radius:99px;cursor:pointer}
+  .chip .d{width:7px;height:7px;border-radius:99px;background:var(--amber)}
+  .chip.live .d{background:var(--green);box-shadow:0 0 8px var(--green)}
+
+  .hero-top{padding:26px 4px 18px}
+  .hero-top h2{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.05}
+  .hero-top p{color:var(--sub);font-size:15px;margin-top:9px;max-width:46ch;line-height:1.45}
+
+  .seg{display:flex;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:13px;padding:4px;gap:4px;margin-bottom:20px}
+  .seg button{flex:1;border:none;background:none;padding:11px;border-radius:10px;font-size:15px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit;transition:.15s}
+  .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+  .datehead{font-size:21px;font-weight:700;letter-spacing:-.02em;margin:24px 2px 12px;display:flex;align-items:center;gap:9px}
+
+  .track{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:11px;overflow:hidden;box-shadow:var(--shadow)}
+  .thead{display:flex;align-items:center;gap:13px;padding:16px 17px;cursor:pointer;user-select:none}
+  .thead .temoji{font-size:24px}
+  .thead .tinfo{flex:1}
+  .thead .tname{font-size:18px;font-weight:650;letter-spacing:-.01em}
+  .thead .tmeta{font-size:13px;color:var(--sub);margin-top:2px}
+  .thead .chev{color:var(--faint);font-size:15px;transition:transform .25s;font-weight:700}
+  .track.open .thead .chev{transform:rotate(90deg)}
+  .tbody{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .track.open .tbody{max-height:1600px}
+
+  .rrow{display:flex;align-items:center;gap:12px;padding:13px 17px;border-top:1px solid var(--line);cursor:pointer;transition:background .12s}
+  .rrow:hover{background:color-mix(in srgb,var(--ink) 3%,transparent)}
+  .rnum{font-size:13px;font-weight:700;color:var(--blue);min-width:30px}
+  .rmid{flex:1;min-width:0}
+  .rdist{font-size:13px;color:var(--sub)}
+  .rpick{font-size:15px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rright{text-align:right;flex-shrink:0}
+  .rodds{font-size:16px;font-weight:700}
+  .rjump{font-size:12px;color:var(--sub);margin-top:2px}
+
+  /* detail */
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-size:16px;font-weight:500;background:none;border:none;cursor:pointer;padding:18px 2px 8px;font-family:inherit}
+  .dtitle{font-size:28px;font-weight:700;letter-spacing:-.03em;padding:4px 2px}
+  .dmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 2px 4px;color:var(--sub);font-size:14px}
+  .tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--ink) 6%,transparent)}
+
+  .cardP{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);margin-top:14px;overflow:hidden}
+  .winner{padding:22px}
+  .winner .lab{font-size:13px;font-weight:600;color:var(--sub);display:flex;align-items:center;gap:6px}
+  .winner .wn{font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+  .wstats{display:flex;gap:30px;margin-top:18px;flex-wrap:wrap;align-items:flex-end}
+  .wstats .v{font-size:32px;font-weight:700;letter-spacing:-.02em}
+  .wstats .v.blue{color:var(--blue)}
+  .wstats .l{font-size:12px;color:var(--sub);margin-top:5px}
+
+  .aiv{padding:18px 20px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--blue) 4%,transparent)}
+  .aiv .h{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--blue)}
+  .aiv .t{font-size:15px;line-height:1.55;margin-top:9px;color:var(--ink)}
+  .aiv .pend{color:var(--sub);font-style:normal}
+  .readbtn{font-family:inherit;font-size:14px;font-weight:600;color:#fff;background:var(--blue);border:none;border-radius:99px;padding:10px 18px;margin-top:4px;cursor:pointer;transition:opacity .15s}
+  .readbtn:active{opacity:.7}
+  .readbtn:disabled{opacity:.5}
+
+  .conf{display:flex;align-items:center;gap:9px;padding:13px 16px;border-radius:14px;margin-top:14px;font-size:13.5px;line-height:1.45}
+  .conf.High{background:color-mix(in srgb,var(--green) 12%,transparent)}
+  .conf.Medium{background:color-mix(in srgb,var(--amber) 13%,transparent)}
+  .conf.Low{background:color-mix(in srgb,var(--red) 10%,transparent)}
+
+  .sec{font-size:13px;font-weight:600;color:var(--sub);padding:20px 2px 8px;text-transform:uppercase;letter-spacing:.04em}
+  .frow{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .frow:last-child{border:none}
+  .frank{font-size:14px;font-weight:700;color:var(--faint);min-width:22px;text-align:center}
+  .finfo{flex:1;min-width:0}
+  .fn{font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .fm{font-size:12.5px;color:var(--sub);margin-top:2px}
+  .fr{text-align:right}
+  .fo{font-size:17px;font-weight:700}
+  .fmodel{font-size:12px;color:var(--sub);margin-top:2px}
+  .pillt{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;margin-top:5px}
+  .p-pos{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
+  .p-neg{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+  .p-neu{background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--sub)}
+
+  .note{margin-top:24px;padding:16px;border-radius:14px;background:color-mix(in srgb,var(--ink) 4%,transparent);color:var(--sub);font-size:12px;line-height:1.6}
+  .empty{text-align:center;padding:64px 20px;color:var(--sub)}
+  .empty .e{font-size:40px}.empty .b{font-size:19px;font-weight:650;color:var(--ink);margin-top:10px}
+  .empty p{margin-top:7px;font-size:14px;max-width:40ch;margin-inline:auto;line-height:1.5}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="logo">🏇</span>Form<span>Edge</span></div>
+    <div class="chip" id="chip" onclick="refresh()"><span class="d"></span><span id="chiptxt">Demo</span></div>
+  </header>
+
+  <div id="listView">
+    <div class="hero-top">
+      <h2>Today's racing,<br>read at a glance. ✨</h2>
+      <p>Tap a track to open its races. The likely winner is the market favourite 🥇 — Form Edge adds an AI read and a second opinion on top.</p>
+    </div>
+    <div class="seg" id="seg"></div>
+    <div id="meets"></div>
+  </div>
+
+  <div id="detailView" class="hide"></div>
+
+  <div class="note">
+    "Model" % is a second opinion, not a tip. Big gaps from the market usually mean missing data, not value. This is a form-study tool — the market is very hard to beat. 18+. Gamble responsibly — 1800 858 858. 💚
+  </div>
+</div>
+
+<script>
+function placePoints(p){return p===1?10:p===2?7:p===3?5:p===4?3:p===5?2:(p>=6&&p<=9)?1:0.4}
+function formScore(f){if(!f)return null;const a=[];for(const c of(""+f).replace(/[^0-9xX-]/g,"")){if(c==="-"||c.toLowerCase()==="x")continue;let p=parseInt(c,10);if(isNaN(p))continue;if(p===0)p=10;a.push(p)}const l=a.slice(-5);if(!l.length)return null;const w=[0.1,0.15,0.2,0.25,0.3].slice(-l.length),s=w.reduce((x,y)=>x+y,0);return l.reduce((ac,p,i)=>ac+(w[i]/s)*placePoints(p),0)}
+function freshness(d){if(d==null||isNaN(d))return null;return Math.exp(-Math.pow(d-21,2)/968)}
+function barr(b,f){if(!b||!f)return null;return 1-Math.max(0,b/f-0.55)*0.9}
+function norm(a){const v=a.filter(x=>x!=null&&!isNaN(x));if(!v.length)return a.map(()=>0.5);const mn=Math.min(...v),mx=Math.max(...v);if(mx-mn<1e-9)return a.map(()=>0.5);return a.map(x=>x==null||isNaN(x)?0.5:(x-mn)/(mx-mn))}
+function softmax(s,t){const e=s.map(x=>Math.exp(x/Math.max(.05,t))),z=e.reduce((a,b)=>a+b,0);return e.map(x=>x/z)}
+const W={form:1,class_rating:.9,win_strike:.6,jockey_strike:.5,trainer_strike:.4,dist_suit:.6,going_suit:.5,freshness:.3,barrier:.3,weight:.3};
+function rate(rs){const f=rs.length;const raw={form:rs.map(r=>formScore(r.form)),class_rating:rs.map(r=>r.class_rating),win_strike:rs.map(r=>r.win_strike),jockey_strike:rs.map(r=>r.jockey_strike),trainer_strike:rs.map(r=>r.trainer_strike),dist_suit:rs.map(r=>r.dist_suit),going_suit:rs.map(r=>r.going_suit),freshness:rs.map(r=>freshness(r.days_since)),barrier:rs.map(r=>barr(r.barrier,f)),weight:rs.map(r=>r.weight!=null?-r.weight:null)};const N={};for(const k in raw)N[k]=norm(raw[k]);const sc=rs.map((_,i)=>{let s=0;for(const k in W)s+=W[k]*(N[k][i]??.5);return s});const pr=softmax(sc,.45);const im=rs.map(r=>r.odds&&r.odds>1?1/r.odds:0),bk=im.reduce((a,b)=>a+b,0);return rs.map((r,i)=>({...r,prob:pr[i],mkt:bk>0?im[i]/bk:null,ev:r.odds?pr[i]*r.odds-1:null}))}
+function confidence(rs,code){const f=['form','win_strike','jockey_strike','trainer_strike','dist_suit','going_suit','days_since','class_rating'];if(code!=='harness')f.push('weight');let p=0,t=0;rs.forEach(r=>f.forEach(k=>{t++;if(r[k]!=null&&r[k]!=='')p++}));const ra=t?p/t:0;return ra>=.55?'High':ra>=.3?'Medium':'Low'}
+function favOf(rd){let f=null;rd.forEach(r=>{if(r.odds&&r.odds>1&&(!f||r.odds<f.odds))f=r});return f}
+function tagOf(ev,c){if(ev==null)return{t:'no price',c:'p-neu'};if(c==='Low'||Math.abs(ev)>.5)return{t:'limited data',c:'p-neu'};if(ev>.1)return{t:'🔥 model rates over',c:'p-pos'};if(ev<-.1)return{t:'model rates under',c:'p-neg'};return{t:'matches market',c:'p-neu'}}
+function jumpIn(s){if(!s)return"—";const ms=new Date(s)-new Date();if(ms<-12e4)return"off";const m=Math.round(ms/6e4);if(m<1)return"now";if(m<60)return m+"m";const h=Math.floor(m/60);return h+"h"+(m%60).toString().padStart(2,"0")}
+function dlabel(s){if(!s)return"Upcoming";const d=new Date(s),n=new Date(),t=n.toDateString(),tm=new Date(n.getTime()+864e5).toDateString(),x=d.toDateString();if(x===t)return"📅 Today";if(x===tm)return"📅 Tomorrow";return"📅 "+d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'short'})}
+function metaLine(r,code){const b=r.barrier!=null?'B'+r.barrier:'',w=(code!=='harness'&&r.weight!=null)?r.weight+'kg':'',j=r.jockey||'—',f=r.form?'('+r.form+')':'';return[b,w,j,f].filter(Boolean).join(' · ')}
+
+const DEMO=[
+ {id:"g1",code:"gallops",track:"Flemington",race_number:7,distance:1400,going:"Good 4",start_time:new Date(Date.now()+14*6e4).toISOString(),ai_view:"Sectional King is the one they're all chasing 🥇 — consistent and well-drawn, the market's got him short for good reason. Barrier Bandit is the each-way roughie if you want a swing, but the data leans toward the favourite holding on.",runners:[
+   {selection_id:1,name:"Sectional King",barrier:4,weight:58.5,jockey:"J. McDonald",form:"1-2113",win_strike:38,jockey_strike:22,trainer_strike:19,days_since:21,dist_suit:.9,going_suit:.8,class_rating:92,odds:3.4},
+   {selection_id:2,name:"Coastal Raider",barrier:1,weight:57,jockey:"C. Williams",form:"32-415",win_strike:25,jockey_strike:18,trainer_strike:16,days_since:28,dist_suit:.7,going_suit:.75,class_rating:88,odds:5.0},
+   {selection_id:3,name:"Barrier Bandit",barrier:12,weight:55.5,jockey:"D. Lane",form:"1141-2",win_strike:33,jockey_strike:16,trainer_strike:14,days_since:24,dist_suit:.85,going_suit:.6,class_rating:90,odds:7.5},
+   {selection_id:4,name:"Wet Track Wonder",barrier:7,weight:56,jockey:"B. Melham",form:"5231-1",win_strike:28,jockey_strike:14,trainer_strike:21,days_since:14,dist_suit:.6,going_suit:.95,class_rating:85,odds:9.0},
+   {selection_id:5,name:"Spell Returner",barrier:9,weight:54,jockey:"J. Allen",form:"21x-43",win_strike:20,jockey_strike:15,trainer_strike:12,days_since:70,dist_suit:.75,going_suit:.7,class_rating:83,odds:15}
+ ]},
+ {id:"g2",code:"gallops",track:"Flemington",race_number:8,distance:1100,going:"Good 4",start_time:new Date(Date.now()+44*6e4).toISOString(),ai_view:"A speed map special over the short course ⚡ — Quick Fire jumps and goes, and the market expects him to lead all the way. Gate Speed from barrier one is the danger if there's any pressure up front.",runners:[
+   {selection_id:1,name:"Quick Fire",barrier:3,weight:57.5,jockey:"J. McDonald",form:"11-214",win_strike:35,jockey_strike:22,trainer_strike:18,days_since:20,dist_suit:.88,going_suit:.78,class_rating:89,odds:3.0},
+   {selection_id:2,name:"Late Surge",barrier:6,weight:55,jockey:"D. Oliver",form:"42-131",win_strike:27,jockey_strike:15,trainer_strike:14,days_since:25,dist_suit:.7,going_suit:.72,class_rating:84,odds:6.5},
+   {selection_id:3,name:"Gate Speed",barrier:1,weight:56,jockey:"L. Currie",form:"213-22",win_strike:24,jockey_strike:16,trainer_strike:13,days_since:31,dist_suit:.8,going_suit:.7,class_rating:85,odds:8.0}
+ ]},
+ {id:"g3",code:"gallops",track:"Randwick",race_number:4,distance:1200,going:"Soft 5",start_time:new Date(Date.now()+33*6e4).toISOString(),ai_view:"Wet track form is the key here 🌧️ — Harbour Lights is the class runner and handles the ground, hence the short price. Soft Ground Star loves it bottomless though, so don't be shocked if the gap closes late.",runners:[
+   {selection_id:1,name:"Harbour Lights",barrier:2,weight:57,jockey:"J. McDonald",form:"112-31",win_strike:41,jockey_strike:23,trainer_strike:20,days_since:19,dist_suit:.88,going_suit:.7,class_rating:91,odds:2.8},
+   {selection_id:2,name:"Soft Ground Star",barrier:6,weight:55,jockey:"N. Rawiller",form:"31-124",win_strike:30,jockey_strike:19,trainer_strike:17,days_since:22,dist_suit:.7,going_suit:.92,class_rating:87,odds:6.0},
+   {selection_id:3,name:"Quick Beginning",barrier:1,weight:56.5,jockey:"K. McEvoy",form:"214-13",win_strike:27,jockey_strike:16,trainer_strike:15,days_since:35,dist_suit:.8,going_suit:.65,class_rating:86,odds:8.5}
+ ]},
+ {id:"h1",code:"harness",track:"Menangle",race_number:3,distance:2240,going:"Fast",start_time:new Date(Date.now()+22*6e4).toISOString(),ai_view:"Major Mach draws the pole and that's gold in harness 🛞 — front-runners win here, and he's got the gate speed to find the lead. Front End Speed is the obvious threat if he can cross early.",runners:[
+   {selection_id:1,name:"Major Mach",barrier:1,jockey:"L. McCarthy",form:"1-2113",win_strike:34,jockey_strike:21,trainer_strike:19,days_since:12,dist_suit:.85,going_suit:.8,class_rating:90,odds:2.6},
+   {selection_id:2,name:"Pacing Pride",barrier:4,jockey:"C. Hall",form:"32-211",win_strike:28,jockey_strike:18,trainer_strike:16,days_since:15,dist_suit:.78,going_suit:.75,class_rating:86,odds:4.4},
+   {selection_id:3,name:"Front End Speed",barrier:2,jockey:"T. McCarthy",form:"114-23",win_strike:31,jockey_strike:17,trainer_strike:15,days_since:9,dist_suit:.82,going_suit:.7,class_rating:88,odds:6.0}
+ ]},
+ {id:"g9",code:"gallops",track:"Caulfield",race_number:1,distance:1000,going:"Good 3",start_time:new Date(Date.now()+864e5+30*6e4).toISOString(),ai_view:"",runners:[
+   {selection_id:1,name:"Dawn Dash",barrier:5,weight:57,jockey:"M. Dee",form:"21-314",win_strike:26,jockey_strike:17,trainer_strike:15,days_since:20,dist_suit:.8,going_suit:.75,class_rating:84,odds:4.5},
+   {selection_id:2,name:"Morning Glory",barrier:2,weight:56,jockey:"B. Shinn",form:"13-221",win_strike:28,jockey_strike:16,trainer_strike:14,days_since:23,dist_suit:.82,going_suit:.7,class_rating:85,odds:4.8}
+ ]}
+];
+
+let RACES=[],LIVE=false,tab="gallops",openTracks=new Set();
+const isPH=v=>!v||v.includes("YOUR_");
+
+async function load(){
+  if(isPH(SUPABASE_URL)||isPH(SUPABASE_ANON_KEY)){RACES=DEMO;LIVE=false;done();return}
+  try{
+    const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data:races,error:e1}=await sb.from("races").select("*").order("start_time");
+    const {data:runners,error:e2}=await sb.from("runners").select("*");
+    if(e1||e2)throw(e1||e2);
+    const by={};(runners||[]).forEach(r=>{(by[r.race_id]=by[r.race_id]||[]).push(r)});
+    RACES=(races||[]).map(r=>({...r,code:r.code||"gallops",runners:by[r.id]||[]})).filter(r=>r.runners.length);
+    LIVE=true;done(!RACES.length)
+  }catch(e){console.warn(e);RACES=DEMO;LIVE=false;done(false,true)}
+}
+function done(empty,failed){setChip(failed);empty?renderEmpty():renderList()}
+function refresh(){load()}
+function setChip(f){const c=document.getElementById("chip"),t=document.getElementById("chiptxt");if(LIVE){c.classList.add("live");t.textContent="Live"}else{c.classList.remove("live");t.textContent=f?"Demo (no link)":"Demo"}}
+
+function renderSeg(){
+  const g=RACES.filter(r=>r.code!=="harness").length,h=RACES.filter(r=>r.code==="harness").length;
+  if(tab==="gallops"&&!g&&h)tab="harness";
+  document.getElementById("seg").innerHTML=
+    `<button class="${tab==='gallops'?'on':''}" onclick="setTab('gallops')">🏇 Horse Racing (${g})</button>
+     <button class="${tab==='harness'?'on':''}" onclick="setTab('harness')">🐎 Harness (${h})</button>`;
+}
+function setTab(t){tab=t;openTracks.clear();renderList()}
+
+function trackEmoji(t){const e=["🏇","🐎","🏆","⭐","🔥","🌟","🎯","🏁"];let h=0;for(const c of(t||""))h=(h+c.charCodeAt(0))%e.length;return e[h]}
+
+function renderList(){
+  document.getElementById("detailView").classList.add("hide");
+  document.getElementById("listView").classList.remove("hide");
+  renderSeg();
+  const list=RACES.filter(r=>tab==="harness"?r.code==="harness":r.code!=="harness");
+  const host=document.getElementById("meets");host.innerHTML="";
+  if(!list.length){host.innerHTML=`<div class="empty"><div class="e">🤷</div><div class="b">No ${tab==='harness'?'harness':'horse'} races</div><p>Nothing in this code for now. Try the other tab or tap the chip to refresh.</p></div>`;return}
+  // group by date -> track
+  const dates={};
+  list.forEach(r=>{const dl=dlabel(r.start_time);(dates[dl]=dates[dl]||{}).__t=dl;const tk=((dates[dl].tracks=dates[dl].tracks||{}));(tk[r.track||"Other"]=tk[r.track||"Other"]||[]).push(r)});
+  const dorder=Object.values(dates).sort((a,b)=>minT(a)-minT(b));
+  let firstOpen=openTracks.size===0;
+  dorder.forEach(dt=>{
+    const dh=document.createElement("div");dh.className="datehead";dh.textContent=dt.__t;host.appendChild(dh);
+    const tracks=Object.entries(dt.tracks).sort((a,b)=>Math.min(...a[1].map(r=>+new Date(r.start_time)))-Math.min(...b[1].map(r=>+new Date(r.start_time))));
+    tracks.forEach(([track,races])=>{
+      const key=dt.__t+"|"+track;
+      if(firstOpen){openTracks.add(key);firstOpen=false}
+      races.sort((a,b)=>(a.race_number||0)-(b.race_number||0));
+      const next=races.map(r=>jumpIn(r.start_time)).find(x=>x!=="off")||"—";
+      const el=document.createElement("div");el.className="track"+(openTracks.has(key)?" open":"");
+      el.innerHTML=`<div class="thead" onclick="toggle('${key.replace(/'/g,"")}',this)">
+          <div class="temoji">${trackEmoji(track)}</div>
+          <div class="tinfo"><div class="tname">${track}</div><div class="tmeta">${races.length} races · next ${next}</div></div>
+          <div class="chev">›</div></div>
+        <div class="tbody"></div>`;
+      const body=el.querySelector(".tbody");
+      races.forEach(race=>{
+        const rd=rate(race.runners),fav=favOf(rd);
+        const row=document.createElement("div");row.className="rrow";row.onclick=()=>openRace(race.id);
+        row.innerHTML=`<div class="rnum">R${race.race_number??"?"}</div>
+          <div class="rmid"><div class="rdist">${race.distance?race.distance+'m':''}${race.going?' · '+race.going:''}</div>
+            <div class="rpick">🥇 ${fav?fav.name:"—"}</div></div>
+          <div class="rright"><div class="rodds num">${fav?"$"+fav.odds.toFixed(2):"—"}</div><div class="rjump">⏱️ ${jumpIn(race.start_time)}</div></div>`;
+        body.appendChild(row);
+      });
+      host.appendChild(el);
+    });
+  });
+}
+function minT(dt){let m=Infinity;Object.values(dt.tracks).forEach(rs=>rs.forEach(r=>m=Math.min(m,+new Date(r.start_time))));return m}
+function toggle(key,elHead){const t=elHead.parentElement;t.classList.toggle("open");if(t.classList.contains("open"))openTracks.add(key);else openTracks.delete(key)}
+
+function openRace(id){
+  const race=RACES.find(r=>r.id===id);if(!race)return;
+  const rd=rate(race.runners),fav=favOf(rd),conf=confidence(race.runners,race.code);
+  const byMkt=[...rd].sort((a,b)=>((a.odds||1e9)-(b.odds||1e9)));
+  const dv=document.getElementById("detailView");
+  document.getElementById("listView").classList.add("hide");dv.classList.remove("hide");window.scrollTo(0,0);
+  const cmsg={High:["🟢","Good data on this race — the model's read is fairly solid."],Medium:["🟡","Partial data — treat the model as a rough guide."],Low:["🔴","Thin data from the feed — the model's mostly guessing, so lean on the favourite."]}[conf];
+  const aiInner=race.ai_view?`<div class="t">${race.ai_view}</div>`:`<button class="readbtn" id="readbtn" onclick="getRead('${race.id}')">✨ Get the read</button>`;
+  dv.innerHTML=`
+    <button class="back" onclick="renderList()">‹ All races</button>
+    <div class="dtitle">${trackEmoji(race.track)} ${race.track} · R${race.race_number??"?"}</div>
+    <div class="dmeta"><span class="tag">${race.code==='harness'?'🐎 Harness':'🏇 Horse Racing'}</span>${race.distance?`<span>${race.distance}m</span>`:""}${race.going?`<span>${race.going}</span>`:""}<span>⏱️ ${jumpIn(race.start_time)}</span></div>
+    <div class="conf ${conf}">${cmsg[0]} ${cmsg[1]}</div>
+    <div class="cardP">
+      <div class="winner">
+        <div class="lab">🥇 Likely winner · the market</div>
+        <div class="wn">${fav?fav.name:"—"}</div>
+        <div class="wstats">
+          <div><div class="v num">${fav?"$"+fav.odds.toFixed(2):"—"}</div><div class="l">Market price</div></div>
+          <div><div class="v blue num">${fav&&fav.mkt?Math.round(fav.mkt*100)+"%":"—"}</div><div class="l">Chance</div></div>
+        </div>
+      </div>
+      <div class="aiv"><div class="h">✨ The read</div><div id="aivbox">${aiInner}</div></div>
+    </div>
+    <div class="sec">Full field · market order</div>
+    <div id="board"></div>`;
+  const b=dv.querySelector("#board");
+  byMkt.forEach((r,i)=>{
+    const tg=tagOf(r.ev,conf),isF=fav&&r.selection_id===fav.selection_id;
+    const row=document.createElement("div");row.className="frow";
+    row.innerHTML=`<div class="frank">${i+1}</div>
+      <div class="finfo"><div class="fn">${r.name}${isF?' 🥇':''}</div><div class="fm">${metaLine(r,race.code)}</div></div>
+      <div class="fr"><div class="fo num">${r.odds?"$"+Number(r.odds).toFixed(2):"—"}</div><div class="fmodel">Model ${(r.prob*100).toFixed(0)}%</div><div class="pillt ${tg.c}">${tg.t}</div></div>`;
+    b.appendChild(row);
+  });
+}
+function renderEmpty(){document.getElementById("meets").innerHTML=`<div class="empty"><div class="e">📭</div><div class="b">No races loaded yet</div><p>Connected, but the table's empty. Aussie racing's busiest mornings & afternoons — tap the chip to refresh.</p></div>`}
+
+async function getRead(id){
+  const box=document.getElementById("aivbox");if(!box)return;
+  box.innerHTML='<div class="t pend">Reading the form… ⏳</div>';
+  const race=RACES.find(r=>r.id===id);
+  if(isPH(SUPABASE_URL)||READ_ENDPOINT.includes("YOUR_")){
+    setTimeout(()=>{box.innerHTML='<div class="t pend">✨ This is demo mode. Once your read service is connected, this button generates a live AI read for the race.</div>'},500);return;
+  }
+  try{
+    const r=await fetch(READ_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({race_id:id})});
+    const j=await r.json();
+    if(j.ai_view){if(race)race.ai_view=j.ai_view;box.innerHTML=`<div class="t">${j.ai_view}</div>`}
+    else box.innerHTML=`<div class="t pend">Couldn't get a read${j.error?` (${j.error})`:""}. Try again in a sec.</div>`;
+  }catch(e){box.innerHTML='<div class="t pend">Read service unreachable — check the endpoint URL is right.</div>'}
+}
+
+load();
+setInterval(()=>{if(!document.getElementById("listView").classList.contains("hide"))load()},120000);
+</script>
+</body>
+</html>
